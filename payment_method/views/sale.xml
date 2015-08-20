@@ -1,0 +1,28 @@
+<openerp>
+    <data>
+	<record id="view_sale_billing_form" model="ir.ui.view">
+	    <field name="name">Sale Order Billing Form</field>
+	    <field name="model">sale.order</field>
+	    <field name="inherit_id" ref="sale.view_order_form" />
+	    <field name="arch" type="xml">
+		<page string="Other Information" position="before" >
+		    <page string="Billing" >
+			<group>
+                            <group name="payment" string="Payment">
+                                <field name="payment_method" />
+                            </group>
+			</group>
+			<group string="Invoices" name="invoices">
+			    <field name="invoice_ids" nolabel="1" widget="one2many_list">
+				<tree>
+				    <field name="name" />
+				    <field name="state" />
+				</tree>
+			    </field>
+			</group>
+		    </page>
+		</page>
+	    </field>
+	</record>
+    </data>
+</openerp>

@@ -1,0 +1,49 @@
+<openerp>
+    <data>
+
+	<record id="view_payment_method_tree" model="ir.ui.view">
+	    <field name="name">Payment Method Tree</field>
+	    <field name="model">payment.method</field>
+	    <field name="arch" type="xml">
+                <tree>
+		    <field name="name" />
+		    <field name="journal" />
+                </tree>
+            </field>
+        </record>
+
+        <record id="view_payment_method_form" model="ir.ui.view">
+            <field name="name">Payment Method Form</field>
+            <field name="model">payment.method</field>
+            <field name="arch" type="xml">
+		<form>
+		    <sheet>
+			<group name="main">
+		            <group string="Name">
+			        <field name="name" nolabel="1"/>
+			    </group>
+			    <group string="Payment Journal" >
+			        <field name="journal" nolabel="1"/>
+			    </group>
+			</group>
+		    </sheet>
+		</form>
+            </field>
+        </record>
+
+        <record id="action_payment_method" model="ir.actions.act_window">
+            <field name="name">Payment Methods</field>
+            <field name="res_model">payment.method</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="view_type">form</field>
+            <field name="view_id" ref="view_payment_method_tree"/>
+        </record>
+
+        <menuitem action="action_payment_method"
+        id="menu_payment_method"
+        parent="account.menu_configuration_misc" />
+
+
+    </data>
+</openerp>
+
