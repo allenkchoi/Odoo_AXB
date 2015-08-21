@@ -462,7 +462,7 @@ class stock_move(models.Model):
     
     @api.model
     def create(self, vals):
-        context=self._context
+        context=dict(self._context)
         if not context: context = {}
         package_obj = self.env['stock.packages']
         pack_id = None
