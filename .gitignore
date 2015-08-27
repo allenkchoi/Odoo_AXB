@@ -41,3 +41,30 @@ $RECYCLE.BIN/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# ===========
+# Odoo
+#============
+
+# dotfiles
+.*
+!.gitignore
+!.gitattributes
+# compiled python files
+*.py[co]
+# setup.py egg_info
+*.egg-info
+# emacs backup files
+*~
+# odoo filestore
+openerp/filestore
+
+# various virtualenv
+/bin/
+/build/
+/dist/
+/include/
+/lib/
+/man/
+/share/
+/src/

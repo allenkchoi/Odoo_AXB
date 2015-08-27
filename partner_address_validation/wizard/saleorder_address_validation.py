@@ -21,11 +21,12 @@
 #
 ##############################################################################
 
-from openerp import models, fields, api, _
 import time
+
+from openerp import models, fields, api, _
+
+
 # import pdb
-
-
 class so_addr_validate(models.TransientModel):
     '''
     Wizard object to validate address of sale order
@@ -45,26 +46,27 @@ class so_addr_validate(models.TransientModel):
         return True
 
     @api.multi
-    def get_state(self, state): # not required any more
+    def get_state(self, state):  # not required any more
         """ Returns the state_id,by taking the state code as an argumrnt """
-        states = self.env['res.country.state'].search(['|',('name','=',state),('code','=',state)])
+        states = self.env['res.country.state'].search(['|', ('name', '=', state), ('code', '=', state)])
         return states and states[0] or False
     
     @api.multi
-    def get_zip(self, zip, state, city): # not required any more
+    def get_zip(self, zip, state, city):  # not required any more
         """ Returns the id of the correct address.zip model """
-        state_id= self.get_state(state)
-        ids= self.env['address.zip'].search([('zipcode','=',zip),('state_id','=',state_id),('city','=',city)])
+        state_id = self.get_state(state)
+        ids = self.env['address.zip'].search([('zipcode', '=', zip), ('state_id', '=', state_id), ('city', '=', city)])
         return ids
 
     @api.multi
     def do_write(self, address_id, address_list):
         address_vals = {}
-        context=self._context
+        context = self._context
         for address_item in address_list:
             if address_item.select:
-                state=address_item.state
-                state_id=self.get_state(state)
+                state = address_item.state
+                state = self.get_state(state)
+                state_id = state and state.id or False
                 address_vals = {'street':address_item.street1,
                                 'city':address_item.city,
                                 'state_id':state_id,
@@ -78,13 +80,13 @@ class so_addr_validate(models.TransientModel):
                 break
 #                    address_vals['zip'] = address_item.zip
 #        res_obj=self.env['res.partner'].browse(address_id)
-        part_obj=self.env['res.partner'].browse(address_id)
+        part_obj = self.env['res.partner'].browse(address_id)
         address_vals and part_obj.write(address_vals)
         return True
 
     @api.multi
     def update_address(self):
-        ids=self._ids
+        ids = self._ids
         datas = self.browse(ids)
         for data in datas:
             self.do_write(data.inv_address_id.id, data.inv_address_list)
@@ -100,18 +102,17 @@ class so_addr_validate(models.TransientModel):
     def onchange_update(self, sale_id):
             ret = {}
             if sale_id:
-                sale_obj=self.env['sale.order'].browse(sale_id)
-                res_obj= sale_obj.read(['partner_invoice_id', 'partner_shipping_id','address_validation_method', 'partner_id'])
+                sale_obj = self.env['sale.order'].browse(sale_id)
+                res_obj = sale_obj.read(['partner_invoice_id', 'partner_shipping_id', 'address_validation_method', 'partner_id'])
             for res in res_obj:
                 inv_addr_id = res['partner_invoice_id'][0]
                 ord_addr_id = res['partner_id']
                 ship_addr_id = res['partner_shipping_id'][0]
                 validation_method = res['address_validation_method']
                 inv_return_data = self.env[validation_method].address_validation(inv_addr_id)
-                print '-----', inv_return_data
                 
                 if inv_return_data['address_list']:
-                    inv_return_data['address_list'][0]['select']=True
+                    inv_return_data['address_list'][0]['select'] = True
                 ret['inv_error_msg'] = inv_return_data['error_msg']
                 if inv_return_data['address_list']:
                     ret['inv_address_list'] = inv_return_data['address_list']
@@ -126,7 +127,7 @@ class so_addr_validate(models.TransientModel):
                 else:
                     ship_return_data = self.env[validation_method].address_validation(ship_addr_id)
                     if ship_return_data['address_list']:
-                        ship_return_data['address_list'][0]['select']=True
+                        ship_return_data['address_list'][0]['select'] = True
                 ret['ship_error_msg'] = ship_return_data['error_msg']
                 if ship_return_data['address_list']:
                     ret['ship_address_list'] = ship_return_data['address_list']
@@ -137,20 +138,20 @@ class so_addr_validate(models.TransientModel):
             return {'value':ret}
 
 
-    update_field =      fields.Boolean(string='Update')
-    sale_id =           fields.Many2one('sale.order','Sale Order')
+    update_field = fields.Boolean(string='Update')
+    sale_id = fields.Many2one('sale.order', 'Sale Order')
 
-    inv_error_msg =     fields.Text(string='Status', size=35 , readonly= True)
-    ord_error_msg =     fields.Text(string='Status' ,size=35, readonly= True)
-    ship_error_msg =    fields.Text(string='Status' ,size=35 ,readonly= True)
+    inv_error_msg = fields.Text(string='Status', size=35 , readonly=True)
+    ord_error_msg = fields.Text(string='Status' , size=35, readonly=True)
+    ship_error_msg = fields.Text(string='Status' , size=35 , readonly=True)
 
-    inv_address_list =  fields.One2many('response.data.model','so_validate_inv', string='Invoice Address List')
-    ord_address_list =  fields.One2many('response.data.model','so_validate_ord', string='Order Address List')
-    ship_address_list=  fields.One2many('response.data.model','so_validate_ship', string='Ship Address List')
+    inv_address_list = fields.One2many('response.data.model', 'so_validate_inv', string='Invoice Address List')
+    ord_address_list = fields.One2many('response.data.model', 'so_validate_ord', string='Order Address List')
+    ship_address_list = fields.One2many('response.data.model', 'so_validate_ship', string='Ship Address List')
 
-    inv_address_id =    fields.Many2one('res.partner', string='Invoice Address')
-    ord_address_id =    fields.Many2one('res.partner', string='Order Address')
-    ship_address_id =   fields.Many2one('res.partner', string='Ship Address')
+    inv_address_id = fields.Many2one('res.partner', string='Invoice Address')
+    ord_address_id = fields.Many2one('res.partner', string='Order Address')
+    ship_address_id = fields.Many2one('res.partner', string='Ship Address')
 
 
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:

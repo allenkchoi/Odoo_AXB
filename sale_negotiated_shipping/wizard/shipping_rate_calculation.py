@@ -28,16 +28,16 @@ class shipping_rate_wizard(models.TransientModel):
     _description = "Calculates shipping charges"
                 
     shipping_cost = fields.Float(string='Shipping Cost')
-    account_id =    fields.Many2one('account.account', string='Account')
-    rate_select =   fields.Many2one('shipping.rate.config', string='Shipping Method')
+    account_id = fields.Many2one('account.account', string='Account')
+    rate_select = fields.Many2one('shipping.rate.config', string='Shipping Method')
 
     @api.model
     def update_shipping_cost(self):
         """
         Function to update sale order and invoice with new shipping cost and method
         """
-        ids=self._ids
-        context=self._context
+        ids = self._ids
+        context = self._context
         datas = self.browse(ids)
         if context is None:
             context = {}
@@ -45,24 +45,25 @@ class shipping_rate_wizard(models.TransientModel):
             model = context['active_model']
             model_obj = self.env[model]
             model_id = context.get('active_id', False)
+            model_browse = model_obj.browse(model_id)
             if model_id:
-                model_obj.write({
+                model_browse.write({
                     'shipcharge': datas.shipping_cost,
                     'ship_method': datas.rate_select.shipmethodname,
                     'sale_account_id': datas.account_id.id,
                     'ship_method_id': datas.rate_select.id,
                     })
             if model == 'sale.order':
-                model_obj.button_dummy()
+                model_browse.button_dummy()
             if model == 'account.invoice':
-                model_obj.button_reset_taxes([model_id])
+                model_browse.button_reset_taxes()
             return {'nodestroy': False, 'type': 'ir.actions.act_window_close'}
 
     @api.multi
     def onchange_shipping_method(self, rate_config_id):
         ret = {}
-        ids=self._ids
-        context=self._context
+        ids = self._ids
+        context = self._context
         if context is None:
             context = {}
         rate_config_obj = self.env['shipping.rate.config']
@@ -73,15 +74,23 @@ class shipping_rate_wizard(models.TransientModel):
             account_id = rate_config.account_id and rate_config.account_id.id or False
             model = context['active_model']
             model_obj = self.env[model].browse(context['active_id'])
-            self._cr.execute('select type,id from res_partner where company_id = %s', (tuple([model_obj.company_id.id])))
-            res = self._cr.fetchall()
-            address = dict(res)
-            if address:
-                address_id = address.get('delivery', False) or address.get('default', False) or\
-                             address.values() and address.values()[0]
-                address_obj = self.env['res.partner'].browse(address_id)
-                if address_obj:
-                    cost = rate_obj.find_cost(rate_config_id, address_obj, model_obj)
+            
+            # search adress partner 
+           
+            
+            # TODO : find delivery address
+            # get adresse customer
+            # self._cr.execute('select type,id from res_partner where company_id = %s', (tuple([model_obj.company_id.id])))
+            # res = self._cr.fetchall()
+            # address = dict(res)
+            # if address:
+                # address_id = address.get('delivery', False) or address.get('default', False) or\
+                             # address.values() and address.values()[0]
+                # address_obj = self.env['res.partner'].browse(address_id)
+                # if address_obj:
+                
+            print '----model_obj.partner_id-----------', model_obj.partner_id
+            cost = rate_obj.find_cost(rate_config_id, model_obj.partner_id, model_obj)
             ret = {'value': {'shipping_cost': cost, 'account_id': account_id}}
         return ret
 

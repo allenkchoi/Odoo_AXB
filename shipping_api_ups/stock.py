@@ -21,38 +21,39 @@
 #
 ##############################################################################
 
-from openerp import models, fields, api, _
-from openerp.exceptions import except_orm, Warning, RedirectWarning
-from xml.dom.minidom import Document
-import httplib
-import base64
-import time
-import datetime
-from urlparse import urlparse
 import Image
-import tempfile
-from mako.template import Template
+import base64
+import datetime
+import httplib
 import logging
-from openerp import tools
+from mako.template import Template
 import os
-# from lxml import etree
+import tempfile
+import time
+from urlparse import urlparse
+from xml.dom.minidom import Document
 
-# from StringIO import StringIO
+from openerp import models, fields, api, _
+from openerp import tools
+from openerp.exceptions import except_orm, Warning, RedirectWarning
 import xml2dic
 
+
+# from lxml import etree
+# from StringIO import StringIO
 class shipping_move(models.Model):
     
     _inherit = "shipping.move"
     
     shipment_identific_no = fields.Char(string='ShipmentIdentificationNumber', size=64)
-    logo =                  fields.Binary(string='Logo')
-    tracking_url =          fields.Char(string='Tracking URL', size=512)
-    service =               fields.Many2one('ups.shipping.service.type', string='Shipping Service')
-    shipper =               fields.Many2one('ups.account.shipping', string='Shipper', help='The specific user ID and shipper. Setup in the company configuration.')
+    logo = fields.Binary(string='Logo')
+    tracking_url = fields.Char(string='Tracking URL', size=512)
+    service = fields.Many2one('ups.shipping.service.type', string='Shipping Service')
+    shipper = fields.Many2one('ups.account.shipping', string='Shipper', help='The specific user ID and shipper. Setup in the company configuration.')
     
     @api.multi
     def print_label(self):
-        ids=self._ids
+        ids = self._ids
         if not ids: return []
         return {
             'type': 'ir.actions.report.xml',
@@ -68,7 +69,7 @@ class shipping_move(models.Model):
 
     @api.multi
     def getTrackingUrl(self):
-        ids=self._ids
+        ids = self._ids
         ship_log_obj = self.browse(ids)[0]
         if ship_log_obj.tracking_no:
             tracking_url = "http://wwwapps.ups.com/WebTracking/processInputRequest?sort_by=status&tracknums_displayed=1&\
@@ -85,15 +86,15 @@ class stock_picking(models.Model):
         res.append(('ups', 'UPS'))
         return res
     
-    ups_service =           fields.Many2one('ups.shipping.service.type', string='Service', help='The specific shipping service offered')
-    shipper =               fields.Many2one('ups.account.shipping', string='Shipper', help='The specific user ID and shipper. Setup in the company configuration.')
-    shipment_digest =       fields.Text(string='ShipmentDigest')
-    negotiated_rates =      fields.Float(string='NegotiatedRates')
+    ups_service = fields.Many2one('ups.shipping.service.type', string='Service', help='The specific shipping service offered')
+    shipper = fields.Many2one('ups.account.shipping', string='Shipper', help='The specific user ID and shipper. Setup in the company configuration.')
+    shipment_digest = fields.Text(string='ShipmentDigest')
+    negotiated_rates = fields.Float(string='NegotiatedRates')
     shipment_identific_no = fields.Char(string='ShipmentIdentificationNumber', size=64)
-    tracking_no =           fields.Char(string='TrackingNumber', size=64)
-    trade_mark =            fields.Char(related='shipper.trademark', string='Trademark', size=1024)
-    ship_company_code =     fields.Selection('_get_company_code', string='Ship Company', size=64)
-    ups_pickup_type =       fields.Selection([
+    tracking_no = fields.Char(string='TrackingNumber', size=64)
+    trade_mark = fields.Char(related='shipper.trademark', string='Trademark', size=1024)
+    ship_company_code = fields.Selection('_get_company_code', string='Ship Company', size=64)
+    ups_pickup_type = fields.Selection([
                                 ('01', 'Daily Pickup'),
                                 ('03', 'Customer Counter'),
                                 ('06', 'One Time Pickup'),
@@ -101,9 +102,9 @@ class stock_picking(models.Model):
                                 ('11', 'Suggested Retail Rates'),
                                 ('19', 'Letter Center'),
                                 ('20', 'Air Service Center')], string='Pickup Type')
-    ups_packaging_type =    fields.Many2one('shipping.package.type', string='Packaging Type')
-    ups_use_cc =            fields.Boolean(string='Credit Card Payment')
-    ups_cc_type =           fields.Selection([
+    ups_packaging_type = fields.Many2one('shipping.package.type', string='Packaging Type')
+    ups_use_cc = fields.Boolean(string='Credit Card Payment')
+    ups_cc_type = fields.Selection([
                                 ('01', 'American Express'),
                                 ('03', 'Discover'),
                                 ('04', 'MasterCard'),
@@ -111,21 +112,21 @@ class stock_picking(models.Model):
                                 ('06', 'VISA'),
                                 ('07', 'Bravo'),
                                 ('08', 'Diners Club')], string='Card Type')
-    ups_cc_number =                 fields.Char(string='Credit Card Number', size=32)
-    ups_cc_expiaration_date =       fields.Char(string='Expiaration Date', size=6, help="Format is 'MMYYYY'")
-    ups_cc_security_code =          fields.Char(string='Security Code', size=4)
-    ups_cc_address_id =             fields.Many2one('res.partner', string='Address')
-    ups_third_party_account =       fields.Char(string='Third Party Account Number', size=32)
-    ups_third_party_address_id =    fields.Many2one('res.partner', string='Third Party Address')
-    ups_third_party_type =          fields.Selection([('shipper', 'Shipper'), ('consignee', 'Consignee')], string='Third Party Type')
-    ups_bill_receiver_account =     fields.Char(string='Receiver Account', size=32, help="The UPS account number of Freight Collect")
-    ups_bill_receiver_address_id =  fields.Many2one('res.partner', string='Receiver Address')
-    label_format_id =               fields.Many2one('shipping.label.type', string='Label Format Code')
-    bill_shipping =                 fields.Selection([
+    ups_cc_number = fields.Char(string='Credit Card Number', size=32)
+    ups_cc_expiaration_date = fields.Char(string='Expiaration Date', size=6, help="Format is 'MMYYYY'")
+    ups_cc_security_code = fields.Char(string='Security Code', size=4)
+    ups_cc_address_id = fields.Many2one('res.partner', string='Address')
+    ups_third_party_account = fields.Char(string='Third Party Account Number', size=32)
+    ups_third_party_address_id = fields.Many2one('res.partner', string='Third Party Address')
+    ups_third_party_type = fields.Selection([('shipper', 'Shipper'), ('consignee', 'Consignee')], string='Third Party Type')
+    ups_bill_receiver_account = fields.Char(string='Receiver Account', size=32, help="The UPS account number of Freight Collect")
+    ups_bill_receiver_address_id = fields.Many2one('res.partner', string='Receiver Address')
+    label_format_id = fields.Many2one('shipping.label.type', string='Label Format Code')
+    bill_shipping = fields.Selection([
                                     ('shipper', 'Shipper'),
                                     ('receiver', 'Receiver'),
                                     ('thirdparty', 'Third Party')
-                                    ], string='Bill Shipping to', default='shipper', 
+                                    ], string='Bill Shipping to', default='shipper',
                                     help='Shipper, Receiver, or Third Party.')
     @api.multi
     def on_change_sale_id(self, sale_id=False, state=False):
@@ -161,7 +162,7 @@ class stock_picking(models.Model):
         return {'value' : vals}
 
 
-#class stock_picking_out(models.Model):
+# class stock_picking_out(models.Model):
 #    _inherit = "stock.picking"
 #
 #    def _get_company_code(self, cr, user, context=None):
@@ -284,7 +285,7 @@ class stock_picking(models.Model):
     @api.multi
     def process_void(self):
         picking_obj = self.env['stock.picking']
-        ids=self._ids
+        ids = self._ids
         if isinstance(ids, list):
             ids = ids[0]
         do = picking_obj.browse(ids)
@@ -1172,8 +1173,8 @@ class stock_picking(models.Model):
 
     @api.multi
     def process_ship(self):
-        ids=self._ids
-        context=self._context
+        ids = self._ids
+        context = self._context
         package_obj = self.env['stock.packages']
         deliv_order = self.browse(type(ids) == type([]) and ids[0] or ids)
         if deliv_order.ship_company_code != 'ups':
@@ -1346,7 +1347,7 @@ class stock(models.Model):
     
     @api.multi
     def create_invoice(self):
-        context=self._context
+        context = self._context
         if context is None:
             context = {}
         invoice_ids = []
@@ -1366,7 +1367,7 @@ class stock_move(models.Model):
     
     @api.multi
     def create(self, values):
-        context=dict(self._context)
+        context = dict(self._context)
         if not context: context = {}
         package_obj = self.env['stock.packages']
         pack_id = None
@@ -1387,5 +1388,6 @@ class stock_move(models.Model):
             self.copy(default_vals)
         return res
     
+
 
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:

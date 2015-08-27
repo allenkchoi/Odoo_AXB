@@ -20,11 +20,13 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 ##############################################################################
-from openerp import models, fields, api
-from openerp import netsvc
 import base64
 import time
+
+from openerp import models, fields, api
+from openerp import netsvc
 import openerp.addons.decimal_precision as dp
+
 
 class stock_picking(models.Model):
     
@@ -52,17 +54,17 @@ class stock_picking(models.Model):
         pack_ids_list = self.read(['packages_ids', 'tot_del_order_weight'])
         for pack_ids in pack_ids_list:
             if pack_ids['tot_del_order_weight'] and pack_ids['packages_ids']:
-                avg_weight=pack_ids['tot_del_order_weight'] / len(pack_ids['packages_ids'])
+                avg_weight = pack_ids['tot_del_order_weight'] / len(pack_ids['packages_ids'])
                 self.env['stock.packages'].write({'weight': avg_weight})
         return True
             
     @api.one
     @api.depends('packages_ids')
     def _total_weight_net(self):
-        result=0.0
+        result = 0.0
         for line in self.packages_ids:
             if line.weight:
-                result+=line.weight
+                result += line.weight
         self.tot_ship_weight = result
         
     @api.one
@@ -71,8 +73,8 @@ class stock_picking(models.Model):
         result = 0.0
         for line in self.move_lines:
             if line.product_id:
-                result+=line.product_qty * line.product_id.weight_net
-        self.tot_del_order_weight=result
+                result += line.product_qty * line.product_id.weight_net
+        self.tot_del_order_weight = result
         
     @api.model
     def _get_move_order(self):
@@ -87,9 +89,9 @@ class stock_picking(models.Model):
         return []
     
     logis_company = fields.Many2one('logistic.company', string='Logistics Company', help='Name of the Logistics company providing the shipper services.')
-    freight =       fields.Boolean(string='Shipment', help='Indicates if the shipment is a freight shipment.')
-    sat_delivery =  fields.Boolean(string='Saturday Delivery', help='Indicates is it is appropriate to send delivery on Saturday.')
-    package_type =  fields.Selection([
+    freight = fields.Boolean(string='Shipment', help='Indicates if the shipment is a freight shipment.')
+    sat_delivery = fields.Boolean(string='Saturday Delivery', help='Indicates is it is appropriate to send delivery on Saturday.')
+    package_type = fields.Selection([
                         ('01', 'Letter'),
                         ('02', 'Customer Supplied Package'),
                         ('03', 'Tube'),
@@ -102,18 +104,18 @@ class stock_picking(models.Model):
                         ('2b', 'Medium Express Box'),
                         ('2c', 'Large Express Box')
                         ], string='Package Type', help='Indicates the type of package')
-    bill_shipping =     fields.Selection([
+    bill_shipping = fields.Selection([
                             ('shipper', 'Shipper'),
                             ('receiver', 'Receiver'),
                             ('thirdparty', 'Third Party')
                             ], string='Bill Shipping to', default='shipper', help='Shipper, Receiver, or Third Party.')
     with_ret_service = fields.Boolean(string='With Return Services', help='Include Return Shipping Information in the package.')
-    tot_ship_weight =  fields.Float(compute='_total_weight_net', digits=(16, 3), store=True, string='Total Shipment Weight',
+    tot_ship_weight = fields.Float(compute='_total_weight_net', digits=(16, 3), store=True, string='Total Shipment Weight',
                                     help="Adds the Total Weight of all the packages in the Packages Table.")
     tot_del_order_weight = fields.Float(compute='_total_ord_weight_net', string='Total Order Weight', store=True,
                                              help="Adds the Total Weight of all the packages in the Packages Table.")
-    packages_ids =  fields.One2many("stock.packages", 'pick_id', string='Packages Table')
-    ship_state =    fields.Selection([
+    packages_ids = fields.One2many("stock.packages", 'pick_id', string='Packages Table')
+    ship_state = fields.Selection([
                         ('draft', 'Draft'),
                         ('in_process', 'In Process'),
                         ('ready_pick', 'Ready for Pickup'),
@@ -123,9 +125,9 @@ class stock_picking(models.Model):
                         ('hold', 'Hold'),
                         ('cancelled', 'Cancelled')
                         ], 'Shipping Status', default='draft', readonly=True, help='The current status of the shipment')
-    trade_mark =        fields.Text(string='Trademarks AREA')
-    ship_message =      fields.Text(string='Message')
-    address_validate =  fields.Selection([
+    trade_mark = fields.Text(string='Trademarks AREA')
+    ship_message = fields.Text(string='Message')
+    address_validate = fields.Selection([
                             ('validate', 'Validate'),
                             ('nonvalidate', 'No Validation')
                             ], 'Address Validation', default='nonvalidate', help=''' No Validation = No address validation.
@@ -133,44 +135,44 @@ class stock_picking(models.Model):
                                       Defaults to validate. Note: Full address validation is not performed. Therefore, it is
                                       the responsibility of the Shipping Tool User to ensure the address entered is correct to
                                       avoid an address correction fee.''')
-    ship_description =      fields.Text(string='Description')
-    ship_from =             fields.Boolean(string='Ship From', help='Required if pickup location is different from the shipper\'s address..')
-    ship_from_tax_id_no =   fields.Char(string='Identification Number', size=30)
-    shipcharge =            fields.Float(string='Shipping Cost', readonly=True)
-    ship_from_address =     fields.Many2one('res.partner', string='Ship From Address', size=30)
-    address =               fields.Many2one('res.partner', 'Ship From Address')
-    sale_id =               fields.Many2one('sale.order', string='Sale Order')
-    tot_order_weight =      fields.Float(related='sale_id.total_weight_net', string='Total Order Weight')
-    comm_inv =              fields.Boolean(string='Commercial Invoice', default=False)
-    cer_orig =              fields.Boolean(string='U.S. Certificate of Origin', default=False)
-    nafta_cer_orig =        fields.Boolean(string='NAFTA Certificate of Origin', default=False)
-    sed =                   fields.Boolean(string='Shipper Export Declaration (SED)', default=False)
-    prod_option =           fields.Selection([
+    ship_description = fields.Text(string='Description')
+    ship_from = fields.Boolean(string='Ship From', help='Required if pickup location is different from the shipper\'s address..')
+    ship_from_tax_id_no = fields.Char(string='Identification Number', size=30)
+    shipcharge = fields.Float(string='Shipping Cost', readonly=True)
+    ship_from_address = fields.Many2one('res.partner', string='Ship From Address', size=30)
+    address = fields.Many2one('res.partner', 'Ship From Address')
+    sale_id = fields.Many2one('sale.order', string='Sale Order')
+    tot_order_weight = fields.Float(related='sale_id.total_weight_net', string='Total Order Weight')
+    comm_inv = fields.Boolean(string='Commercial Invoice', default=False)
+    cer_orig = fields.Boolean(string='U.S. Certificate of Origin', default=False)
+    nafta_cer_orig = fields.Boolean(string='NAFTA Certificate of Origin', default=False)
+    sed = fields.Boolean(string='Shipper Export Declaration (SED)', default=False)
+    prod_option = fields.Selection([
                                 ('01', 'AVAILABLE TO CUSTOMS UPON REQUEST'),
                                 ('02', 'SAME AS EXPORTER'),
                                 ('03', 'ATTACHED LIST'),
                                 ('04', 'UNKNOWN'),
                                 (' ', ' ')
                                 ], string='Option')
-    prod_company =          fields.Char(string='CompanyName', size=256, help='Only applicable when producer option is empty or not present.')
-    prod_tax_id_no =        fields.Char(string='TaxIdentificationNumber', size=256, help='Only applicable when producer option is empty or not present.')
-    prod_address_id =       fields.Many2one('res.partner', string='Producer Address', help='Only applicable when producer option is empty or not present.')
-    inv_option =            fields.Selection([
+    prod_company = fields.Char(string='CompanyName', size=256, help='Only applicable when producer option is empty or not present.')
+    prod_tax_id_no = fields.Char(string='TaxIdentificationNumber', size=256, help='Only applicable when producer option is empty or not present.')
+    prod_address_id = fields.Many2one('res.partner', string='Producer Address', help='Only applicable when producer option is empty or not present.')
+    inv_option = fields.Selection([
                                 ('01', 'Unknown'),
                                 ('02', 'Various'),
                                 (' ', ' ')
                                 ], string='Sold to Option')
-    inv_company =           fields.Char(string='CompanyName', size=256, help='Only applicable when Sold to option is empty or not present.')
-    inv_tax_id_no =         fields.Char(string='TaxIdentificationNumber', size=256, help='Only applicable when Sold to option is empty or not present.')
-    inv_att_name =          fields.Char(string='AttentionName', size=256, help='Only applicable when Sold to option is empty or not present.')
-    inv_address_id =        fields.Many2one('res.partner', string='Sold To Address', help='Only applicable when Sold to option is empty or not present.')
-    blanket_begin_date =    fields.Date(string='Blanket Begin Date')
-    blanket_end_date =      fields.Date(string='Blanket End Date')
-    comm_code =             fields.Char(string='Commodity Code', size=256,)
-    exp_carrier =           fields.Char(string='ExportingCarrier', size=256)
-    ship_company_code =     fields.Selection('_get_company_code', string='Ship Company', size=64)
-    ship_charge =           fields.Float(string='Value', default=0.0, digits_compute=dp.get_precision('Account'))
-    stock_pick_ids =        fields.Many2one('stock.packages', string="Stock Pick ids")
+    inv_company = fields.Char(string='CompanyName', size=256, help='Only applicable when Sold to option is empty or not present.')
+    inv_tax_id_no = fields.Char(string='TaxIdentificationNumber', size=256, help='Only applicable when Sold to option is empty or not present.')
+    inv_att_name = fields.Char(string='AttentionName', size=256, help='Only applicable when Sold to option is empty or not present.')
+    inv_address_id = fields.Many2one('res.partner', string='Sold To Address', help='Only applicable when Sold to option is empty or not present.')
+    blanket_begin_date = fields.Date(string='Blanket Begin Date')
+    blanket_end_date = fields.Date(string='Blanket End Date')
+    comm_code = fields.Char(string='Commodity Code', size=256,)
+    exp_carrier = fields.Char(string='ExportingCarrier', size=256)
+    ship_company_code = fields.Selection('_get_company_code', string='Ship Company', size=64)
+    ship_charge = fields.Float(string='Value', default=0.0, digits_compute=dp.get_precision('Account'))
+    stock_pick_ids = fields.Many2one('stock.packages', string="Stock Pick ids")
      
     @api.model
     def process_ship(self):
@@ -178,9 +180,9 @@ class stock_picking(models.Model):
 
     @api.multi
     def print_labels(self):
-        ids=self._ids
+        ids = self._ids
         if not ids: return []
-        datas={
+        datas = {
                 'model': 'stock.picking',
                 'id': ids and ids[0] or False,
                 'ids': ids,
@@ -194,7 +196,7 @@ class stock_picking(models.Model):
         
     @api.multi
     def print_packing_slips(self):
-        ids=self._ids
+        ids = self._ids
         if not ids: return []
         packages_ids = []
         for package in self.browse(ids).packages_ids[0]:
@@ -231,7 +233,7 @@ class stock_picking(models.Model):
 
     @api.multi
     def send_conf_mail(self):
-        ids=self._ids
+        ids = self._ids
         for id in ids:
             obj = self.browse(ids)
             if obj and obj.address_id and obj.address_id.email:
@@ -269,24 +271,7 @@ class stock_picking(models.Model):
         return True
 
 
-class stock_move(models.Model):
-    _inherit = "stock.move"
-    
-    package_id =    fields.Many2one('stock.packages', string='Package', help='Indicates the package')
-    cost =          fields.Float(string='Value', digits_compute=dp.get_precision('Account'))
-    
-    @api.multi
-    def onchange_quantity(self, product_id, product_qty, product_uom, product_uos, location_id, sale_line_id):
-        result = super(stock_move, self).onchange_quantity(product_id, product_qty, product_uom, product_uos)
-        if product_id: 
-            product = self.env['product.product'].browse(product_id)
-            if sale_line_id:
-                sale_unit_price = self.env['sale.order.line'].browse(sale_line_id).price_unit
-                price = sale_unit_price * product_qty
-            else:
-                price = product.list_price * product_qty
-            result['value'].update({'cost': price})
-        return result
+ 
     
 
 class Prod(models.Model):
@@ -294,7 +279,7 @@ class Prod(models.Model):
     
     @api.model
     def search(self, args, offset=0, limit=None, order=None, count=False):
-        context=self._context
+        context = self._context
         if context is None:
             context = {}
 
