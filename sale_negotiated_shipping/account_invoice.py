@@ -21,9 +21,11 @@
 #
 ##############################################################################
 
-from openerp import models, fields, api
 import time
+
+from openerp import models, fields, api
 import openerp.addons.decimal_precision as dp
+
 
 class account_invoice(models.Model):
     _inherit = "account.invoice"
@@ -35,7 +37,7 @@ class account_invoice(models.Model):
         result = 0.0
         for line in self.invoice_line:
             if line.product_id:
-                result+= line.weight_net or 0.0
+                result += line.weight_net or 0.0
         self.total_weight_net = result
 
     @api.multi
@@ -59,7 +61,7 @@ class account_invoice(models.Model):
         return super(account_invoice, invoice)._get_invoice_from_line()
 
     @api.multi
-    def finalize_invoice_move_lines(self, invoice, move_lines):
+    def finalize_invoice_move_lines(self, move_lines, invoice=False):
         """
         finalize_invoice_move_lines(cr, uid, invoice, move_lines) -> move_lines
         Hook method to be overridden in additional modules to verify and possibly alter the
@@ -70,69 +72,70 @@ class account_invoice(models.Model):
         Returns:
             The (possibly updated) final move_lines to create for this invoice
         """
-        move_lines = super(account_invoice, self).finalize_invoice_move_lines(invoice, move_lines)
-        if invoice.type == "out_refund":
-            account = invoice.account_id.id
-        else:
-            account = invoice.sale_account_id.id
-        if invoice.type in ('out_invoice','out_refund')  and account and invoice.shipcharge:
-            lines1 = {
-                'analytic_account_id': False,
-                'tax_code_id': False,
-                'analytic_lines': [],
-                'tax_amount': False,
-                'name': 'Shipping Charge',
-                'ref': '',
-                'currency_id': False,
-                'credit': invoice.shipcharge,
-                'product_id': False,
-                'date_maturity': False,
-                'debit': False,
-                'date': time.strftime("%Y-%m-%d"),
-                'amount_currency': 0,
-                'product_uom_id':  False,
-                'quantity': 1,
-                'partner_id': invoice.partner_id.id,
-                'account_id': account
-            }
-            move_lines.append((0, 0, lines1))
-            has_entry = False
-            for move_line in move_lines:
-                journal_entry = move_line[2]
-                if journal_entry['account_id'] == invoice.partner_id.property_account_receivable.id:
-                    journal_entry['debit'] += invoice.shipcharge
-                    has_entry = True
-                    break
-            if not has_entry:       # If debit line does not exist create one
-                lines2 = {
+        move_lines = super(account_invoice, self).finalize_invoice_move_lines(move_lines)
+        if invoice:
+            if invoice.type == "out_refund":
+                account = invoice.account_id.id
+            else:
+                account = invoice.sale_account_id.id
+            if invoice.type in ('out_invoice', 'out_refund')  and account and invoice.shipcharge:
+                lines1 = {
                     'analytic_account_id': False,
                     'tax_code_id': False,
                     'analytic_lines': [],
                     'tax_amount': False,
-                    'name': '/',
+                    'name': 'Shipping Charge',
                     'ref': '',
                     'currency_id': False,
-                    'credit': False,
+                    'credit': invoice.shipcharge,
                     'product_id': False,
                     'date_maturity': False,
-                    'debit': invoice.shipcharge,
+                    'debit': False,
                     'date': time.strftime("%Y-%m-%d"),
                     'amount_currency': 0,
-                    'product_uom_id': False,
+                    'product_uom_id':  False,
                     'quantity': 1,
                     'partner_id': invoice.partner_id.id,
-                    'account_id': invoice.partner_id.property_account_receivable.id
+                    'account_id': account
                 }
-                move_lines.append((0, 0, lines2))
+                move_lines.append((0, 0, lines1))
+                has_entry = False
+                for move_line in move_lines:
+                    journal_entry = move_line[2]
+                    if journal_entry['account_id'] == invoice.partner_id.property_account_receivable.id:
+                        journal_entry['debit'] += invoice.shipcharge
+                        has_entry = True
+                        break
+                if not has_entry:  # If debit line does not exist create one
+                    lines2 = {
+                        'analytic_account_id': False,
+                        'tax_code_id': False,
+                        'analytic_lines': [],
+                        'tax_amount': False,
+                        'name': '/',
+                        'ref': '',
+                        'currency_id': False,
+                        'credit': False,
+                        'product_id': False,
+                        'date_maturity': False,
+                        'debit': invoice.shipcharge,
+                        'date': time.strftime("%Y-%m-%d"),
+                        'amount_currency': 0,
+                        'product_uom_id': False,
+                        'quantity': 1,
+                        'partner_id': invoice.partner_id.id,
+                        'account_id': invoice.partner_id.property_account_receivable.id
+                    }
+                    move_lines.append((0, 0, lines2))
         return move_lines
     
 
-    total_weight_net =  fields.Float(compute='_total_weight_net', string='Total Net Weight', store=True,
+    total_weight_net = fields.Float(compute='_total_weight_net', string='Total Net Weight', store=True,
                                      help="The cumulated net weight of all the invoice lines.")
-    shipcharge =        fields.Float(string='Shipping Cost', readonly=True)
-    ship_method =       fields.Char(string='Ship Method', size=128, readonly=True)
-    ship_method_id =    fields.Many2one('shipping.rate.config', string='Shipping Method', readonly=True)
-    sale_account_id =   fields.Many2one('account.account', string='Shipping Account', readonly=True,
+    shipcharge = fields.Float(string='Shipping Cost', readonly=True)
+    ship_method = fields.Char(string='Ship Method', size=128, readonly=True)
+    ship_method_id = fields.Many2one('shipping.rate.config', string='Shipping Method', readonly=True)
+    sale_account_id = fields.Many2one('account.account', string='Shipping Account', readonly=True,
                                           help='This account represents the g/l account for booking shipping income.')
 
 
@@ -141,13 +144,11 @@ class invoice_line(models.Model):
     _inherit = 'account.invoice.line'
 
     @api.one
-    @api.depends('product_id')
+    @api.depends('product_id', 'quantity')
     def _weight_net(self):
         """Compute the net weight of the given Invoice Lines."""
-        result = 0.0
-        for line in self.product_id:
-            result+= line.weight_net * line.quantity
-        self.weight_net= result
+        result = self.product_id.weight_net * self.quantity
+        self.weight_net = result
     
     
     weight_net = fields.Float(compute='_weight_net', string='Net Weight', help="The net weight in Kg.", store=True)
@@ -159,11 +160,12 @@ class account_invoice_tax_inherit(models.Model):
 
     @api.multi
     def compute(self, invoice_id):
-        context=self._context
+        print '--------------invoice_id-----', invoice_id
+        context = self._context
         tax_grouped = super(account_invoice_tax_inherit, self).compute(invoice_id)
         tax_obj = self.env['account.tax']
         cur_obj = self.env['res.currency']
-        inv = self.env['account.invoice'].browse(invoice_id)
+        inv = self.env['account.invoice'].browse(invoice_id.id)
         cur = inv.currency_id
         company_currency = inv.company_id.currency_id.id
         tax_ids = inv.ship_method_id and inv.ship_method_id.shipment_tax_ids
@@ -178,7 +180,7 @@ class account_invoice_tax_inherit(models.Model):
                     'sequence': tax['sequence'],
                     'base': tax['price_unit'] * 1
                     })
-                if inv.type in ('out_invoice','in_invoice'):
+                if inv.type in ('out_invoice', 'in_invoice'):
                     val.update({
                         'base_code_id': tax['base_code_id'],
                         'tax_code_id': tax['tax_code_id'],

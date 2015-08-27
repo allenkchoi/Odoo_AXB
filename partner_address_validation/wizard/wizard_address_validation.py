@@ -22,8 +22,9 @@
 ##############################################################################
 
 
-from openerp import models, fields, api
 import time
+
+from openerp import models, fields, api
 
 
 class address_validation_response_data(models.TransientModel):
@@ -33,16 +34,16 @@ class address_validation_response_data(models.TransientModel):
     _name = "response.data.model"
     _rec_name = "street1"
 
-    street1 =           fields.Char(string='Street1', size=32, required=True, select=1)
-    city =              fields.Char(string='City', size=32, required=True, select=1)
-    state =             fields.Char(string='State', size=32, required=True, select=1)
-    zip =               fields.Char(string='Zip', size=32, required=True, select=1)
-    classification =    fields.Selection([('',''),('0','Unknown'),('1','Commercial'),('2','Residential')], string='Classification')
-    so_validate_inv =   fields.Many2one("so.addr_validate", string="Sale Order Validate")
-    so_validate_ord =   fields.Many2one("so.addr_validate", string="Sale Order Validate")
-    so_validate_ship =  fields.Many2one("so.addr_validate", string="Sale Order Validate")
-    so_validate =       fields.Integer(string="Sale Order Validate")
-    select =            fields.Boolean(string="Select")
+    street1 = fields.Char(string='Street1', size=32, required=True, select=1)
+    city = fields.Char(string='City', size=32, required=True, select=1)
+    state = fields.Char(string='State', size=32, required=True, select=1)
+    zip = fields.Char(string='Zip', size=32, required=True, select=1)
+    classification = fields.Selection([('', ''), ('0', 'Unknown'), ('1', 'Commercial'), ('2', 'Residential')], string='Classification')
+    so_validate_inv = fields.Many2one("so.addr_validate", string="Sale Order Validate")
+    so_validate_ord = fields.Many2one("so.addr_validate", string="Sale Order Validate")
+    so_validate_ship = fields.Many2one("so.addr_validate", string="Sale Order Validate")
+    so_validate = fields.Integer(string="Sale Order Validate")
+    select = fields.Boolean(string="Select")
 
 
 class partner_addr_validate(models.TransientModel):
@@ -54,36 +55,37 @@ class partner_addr_validate(models.TransientModel):
 #    _rec_name = 'inv_error_msg'
 
     @api.model
-    def clean_memory(self, cr, uid):
+    def clean_memory(self):
         resp_env = self.env['response.data.model']
         resp_ids = resp_env.search([])
-        resp_env.unlink(resp_ids)
+        resp_env.unlink()
         return True
     
     @api.model
-    def get_state(self, state): # not required any more
+    def get_state(self, state):  # not required any more
         """ Returns the state_id,by taking the state code as an argument """
-        states = self.env['res.country.state'].search(['|',('name','=',state),('code','=',state)])
+        states = self.env['res.country.state'].search(['|', ('name', '=', state), ('code', '=', state)])
         return states and states[0] or False
 
     @api.model
-    def get_zip(self,zip,state,city): # not required any more
+    def get_zip(self, zip, state, city):  # not required any more
         """ Returns the id of the correct address.zip model """
-        state_id=self.get_state(state)
-        ids=self.env['address.zip'].search([('zipcode','=',zip),
-                                            ('state_id','=',state_id),
-                                            ('city','=',city)])
+        state_id = self.get_state(state)
+        ids = self.env['address.zip'].search([('zipcode', '=', zip),
+                                            ('state_id', '=', state_id),
+                                            ('city', '=', city)])
         return ids
     
     @api.multi
     def do_write(self, cr, uid, address_id, address_list, context={}):
         address_vals = {}
-        cr=self._cr
-        context=self._context
+        cr = self._cr
+        context = self._context
         for address_item in address_list:
             if address_item.select:
-                state=address_item.state
-                state_id=self.get_state(state)
+                state = address_item.state
+                state = self.get_state(state)
+                state_id = state and state.id or False
                 
                 address_vals = {
                     'street':address_item.street1,
@@ -100,7 +102,9 @@ class partner_addr_validate(models.TransientModel):
 #                    address_vals['zip'] = address_item.zip
                 break
 #        address_vals and self.pool.get('res.partner').write(cr,uid,address_id, address_vals)
-        part_obj=self.env['res.partner'].browse(context['active_id'])
+        part_obj = self.env['res.partner'].browse(context['active_id'])
+        
+        print '-------address_vals------', address_vals
         address_vals and part_obj.write(address_vals)
 #        cr.commit()
         self.clean_memory()
@@ -110,10 +114,13 @@ class partner_addr_validate(models.TransientModel):
     def update_address(self):
         
         """ To write the selected address to the partner address form """
-        ids=self._ids
+        ids = self._ids
+        cr = self._cr
+        uid = self._uid
+        address_id = False
         datas = self.browse(ids)
         for data in datas:
-            self.do_write(data.address_list)
+            self.do_write(cr, uid, address_id, data.address_list)
         return {}
 
     @api.multi
@@ -123,15 +130,15 @@ class partner_addr_validate(models.TransientModel):
             address_item = self.env['res.partner'].browse(default_addr_id)
             if address_item.address_validation_method is 'none':
                 return { 'value':ret }
-            inv_return_data = self.env[address_validation_method].address_validation(default_addr_id)
+            inv_return_data = self.env[address_item.address_validation_method].address_validation(default_addr_id)
             ret['error_msg'] = inv_return_data['error_msg']
             ret['address_list'] = inv_return_data['address_list']
             ret['address_id'] = default_addr_id
         return {'value':ret}
 
-    error_msg =     fields.Text(string='Error Message')
-    address_list =  fields.One2many('response.data.model','so_validate', string='Address List')
-    address_id =    fields.Many2one('res.partner', string='Address')
+    error_msg = fields.Text(string='Error Message')
+    address_list = fields.One2many('response.data.model', 'so_validate', string='Address List')
+    address_id = fields.Many2one('res.partner', string='Address')
 
 
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:

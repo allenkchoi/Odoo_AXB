@@ -21,12 +21,13 @@
 #
 ##############################################################################
 
-import xml2dic
-#import easypost
-#easypost.api_key = '5WBoXcRU4Ry7IzDgIJ06hA'
 from openerp import models, fields, api
 from openerp.tools.translate import _
+import xml2dic
 
+
+# import easypost
+# easypost.api_key = '5WBoXcRU4Ry7IzDgIJ06hA'
 class shipping_rate_wizard(models.TransientModel):
     _inherit = 'shipping.rate.wizard'
     
@@ -39,7 +40,7 @@ class shipping_rate_wizard(models.TransientModel):
     @api.model
     def default_get(self, fields):
         res = super(shipping_rate_wizard, self).default_get(fields)
-        context=self._context
+        context = self._context
         if context is None:
             context = {}
         sale_obj = self.env['sale.order']
@@ -58,7 +59,7 @@ class shipping_rate_wizard(models.TransientModel):
         elif context.get('active_model', False) == 'account.invoice':
             inv_id = context.get('active_id', False)
             invoice = self.env['account.invoice'].browse(inv_id)
-            sale_ids = sale_obj.search([('invoice_ids','in', [inv_id])])
+            sale_ids = sale_obj.search([('invoice_ids', 'in', [inv_id])])
             sale_id = sale_ids and sale_ids[0] or False
             sale = sale_id and sale_obj.browse(sale_id)
             shipping_id = sale_id and sale.partner_shipping_id and sale.partner_shipping_id.id or False
@@ -69,21 +70,22 @@ class shipping_rate_wizard(models.TransientModel):
             if inv_id:
                 res.update({
                     'partner_id': invoice.partner_id and invoice.partner_id.id or False,
-                    'partner_shipping_id': shipping_id
+                    'partner_shipping_id': shipping_id and shipping_id.id or False
                     })
+        print '------------res--', res
         return res
 
     @api.multi
     def update_shipping_cost(self):
-        ids=self._ids
-        context=self._context
+        ids = self._ids
+        context = self._context
         data = self.browse(ids)[0]
         if context is None:
             context = {}
         if not (data['rate_selection'] == 'rate_request' and data['ship_company_code'] == 'ups'):
             return super(shipping_rate_wizard, self).update_shipping_cost()
         
-        if context.get('active_model',False) == 'sale.order':
+        if context.get('active_model', False) == 'sale.order':
             sale_id = context.get('active_id', False)
             sale_obj = self.env['sale.order']
             if sale_id:
@@ -101,7 +103,7 @@ class shipping_rate_wizard(models.TransientModel):
                     })
             sale_obj.button_dummy()
             return {'nodestroy': False, 'type': 'ir.actions.act_window_close'}
-        elif context.get('active_model',False) == 'account.invoice':
+        elif context.get('active_model', False) == 'account.invoice':
             inv_id = context.get('active_id', False)
             
             inv_obj = self.env['account.invoice']
@@ -115,8 +117,8 @@ class shipping_rate_wizard(models.TransientModel):
 
     @api.multi
     def get_rate(self):
-        ids=self._ids
-        context=self._context
+        ids = self._ids
+        context = self._context
         sale_obj = self.env['sale.order']
         data = self.browse(ids)[0]
         sale_obj.write({'ups_shipper_id':data.ups_shipper_id.id,
@@ -144,7 +146,7 @@ class shipping_rate_wizard(models.TransientModel):
             password = data.ups_shipper_id and data.ups_shipper_id.password or ''
             pickup_type_ups = data.ups_pickup_type
             shipper_zip = data.ups_shipper_id and data.ups_shipper_id.address and data.ups_shipper_id.address.zip or ''
-            shipper_country_code =  data.ups_shipper_id and data.ups_shipper_id.address and  data.ups_shipper_id.address.country_id and \
+            shipper_country_code = data.ups_shipper_id and data.ups_shipper_id.address and  data.ups_shipper_id.address.country_id and \
                                     data.ups_shipper_id.address.country_id.code or ''
             ups_info_shipper_no = data.ups_shipper_id and data.ups_shipper_id.acc_no or ''
             service_type_ups = data.ups_service_id and data.ups_service_id.shipping_service_code or ''
@@ -207,8 +209,8 @@ class shipping_rate_wizard(models.TransientModel):
                     </PackageWeight>
                 </Package>
             </Shipment>
-            </RatingServiceSelectionRequest>""" % (access_license_no, user_id, password, pickup_type_ups, shipper_zip,shipper_country_code, 
-                                                   ups_info_shipper_no,receipient_zip, receipient_country_code, shipper_zip, shipper_country_code, 
+            </RatingServiceSelectionRequest>""" % (access_license_no, user_id, password, pickup_type_ups, shipper_zip, shipper_country_code,
+                                                   ups_info_shipper_no, receipient_zip, receipient_country_code, shipper_zip, shipper_country_code,
                                                    service_type_ups, packaging_type_ups, weight)
             try:
                 from urllib2 import Request, urlopen, URLError, quote
@@ -226,7 +228,12 @@ class shipping_rate_wizard(models.TransientModel):
                     for response in response_dic['RatingServiceSelectionResponse'][1]['RatedShipment']:
                         if response.get('TotalCharges'):
                             amount = response['TotalCharges'][1]['MonetaryValue']
-                            sale_obj.write({'shipcharge': amount or 0.00, 'status_message': 'Success!'})
+                            if context['active_model'] == 'sale.order':
+                                sale.write({'shipcharge': amount or 0.00, 'status_message': 'Success!'})
+                            elif context['active_model'] == 'account.invoice':
+                                invoice.write({'shipcharge': amount or 0.00, 'status_message': 'Success!'})
+                
+                            
                     return True
             except URLError, e:
                 if hasattr(e, 'reason'):

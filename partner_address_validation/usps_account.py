@@ -30,18 +30,18 @@ class usps_account(models.Model):
     '''
     _name = "usps.account"
 
-    name =          fields.Char(string='Company Name', size=64)
-    usps_userid =   fields.Char(string='User ID', size=64)
+    name = fields.Char(string='Company Name', size=64)
+    usps_userid = fields.Char(string='User ID', size=64)
     usps_url_test = fields.Char(string='Test URL', size=512)
-    usps_url =      fields.Char(string='Production URL', size=512)
-    test_mode =     fields.Boolean(string='Test Mode', default=lambda * a: True)
+    usps_url = fields.Char(string='Production URL', size=512)
+    test_mode = fields.Boolean(string='Test Mode', default=lambda * a: True)
 
     @api.multi
     def address_validation(self, address_id):
 #         pdb.set_trace()
         """ This function is called from the wizard.Performs the actual computing in address validation """
-        status=0
-        error_msg=''
+        status = 0
+        error_msg = ''
         usps_accounts = self.env['usps.account'].search([])
         if not usps_accounts:
             warning = {
@@ -52,7 +52,7 @@ class usps_account(models.Model):
         if usps_accounts and address_id:
             usps_account = self.env['usps.account'].browse(usps_accounts.id)
             if type(address_id) is list or type(address_id) is tuple:
-                address_id=address_id[0]
+                address_id = address_id[0]
 
             partner_address = self.env['res.partner'].browse(address_id)
             
@@ -64,7 +64,7 @@ class usps_account(models.Model):
             connector = base.AddressValidate(url)
             ret_list = []
             try:
-                response = connector.execute([{'Address2':partner_address.street,
+                response = connector.execute(userid, [{'Address2':partner_address.street,
                                                'City':partner_address.city,
                                                'State':partner_address.state_id and partner_address.state_id.code or '',
                                                'Zip5': partner_address.zip or ''
@@ -73,11 +73,11 @@ class usps_account(models.Model):
                 error_msg = "Success: Address is valid."
 
             except base.USPSXMLError, e:
-                error_msg =  error_msg + str(e)
+                error_msg = error_msg + str(e)
 
             except Exception, e:
 
-                error_msg =  error_msg + str(e)
+                error_msg = error_msg + str(e)
             return {
                 'addr_status':status,
                 'error_msg':error_msg,

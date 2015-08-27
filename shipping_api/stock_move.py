@@ -20,19 +20,27 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 ##############################################################################
+import openerp.addons.decimal_precision as dp
+from openerp.osv import fields, osv
 
+class stock_move(osv.osv):
+    _inherit = "stock.move"
 
-import email_template
-import logistic_company
-import purchase
-import report
-import res_company
-import sale
-import shipping
-import stock
-import stock_move
-import stock_packages
-import wizard
-
-
-# vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
+    _columns = {
+        'package_id' : fields.many2one('stock.packages', help='Indicates the package', string='Package'),
+        'cost': fields.float('Value', digits_compute=dp.get_precision('Account'))
+    }
+    
+    def onchange_quantity(self, cr, uid, ids, product_id, product_qty, product_uom, product_uos, location_id=False, sale_line_id=False):
+        result = super(stock_move, self).onchange_quantity(cr, uid, ids, product_id, product_qty, product_uom, product_uos)
+        if product_id:
+            product = self.pool.get('product.product').browse(cr, uid, product_id)
+            if sale_line_id:
+                sale_unit_price = self.pool.get('sale.order.line').browse(cr, uid, sale_line_id).price_unit
+                price = sale_unit_price * product_qty
+            else:
+                price = product.list_price * product_qty
+            result['value'].update({'cost': price})
+        return result
+    
+stock_move()

@@ -21,13 +21,15 @@
 #
 ##############################################################################
 
-import ups
 import logistic_company
+import report
 import res_company
 import sale
-import stock
 import shipping_label_type
-import wizard
+import stock
 import stock_package
-import report
+import ups
+import wizard
+
+
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:

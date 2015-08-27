@@ -20,28 +20,30 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>
 #
 ##############################################################################
-from openerp import models, fields, api, _
-import math
 from base64 import b64decode
+import math
 import urllib
-import xml2dic
 from xml.dom.minidom import parse, parseString
+
+from openerp import models, fields, api, _
+import xml2dic
+
 
 class shipping_rate_wizard(models.TransientModel):
     _inherit = 'shipping.rate.wizard'
 
     @api.model
     def _get_company_code(self):
-        res =  super(shipping_rate_wizard, self)._get_company_code()
+        res = super(shipping_rate_wizard, self)._get_company_code()
         res.append(('usps', 'USPS'))
         return res
 
     @api.model
     def default_get(self, fields):
         res = super(shipping_rate_wizard, self).default_get(fields)
-        context=self._context
-        if context.get('active_model',False) == 'sale.order':
-            sale_id = context.get('active_id',False)
+        context = self._context
+        if context.get('active_model', False) == 'sale.order':
+            sale_id = context.get('active_id', False)
             if sale_id:
                 sale = self.env['sale.order'].browse(sale_id)
                 if 'usps_service_type' in fields and  sale.usps_service_type:
@@ -74,13 +76,13 @@ class shipping_rate_wizard(models.TransientModel):
 
     @api.multi
     def update_sale_order(self):
-        ids=self._ids
-        context=self._context
+        ids = self._ids
+        context = self._context
         data = self.browse(ids)[0]
-        if not (data['rate_selection'] == 'rate_request' and data['ship_company_code']=='usps'):
+        if not (data['rate_selection'] == 'rate_request' and data['ship_company_code'] == 'usps'):
             return super(shipping_rate_wizard, self).update_sale_order()
-        if context.get('active_model',False) == 'sale.order':
-            sale_id = context.get('active_id',False)
+        if context.get('active_model', False) == 'sale.order':
+            sale_id = context.get('active_id', False)
             sale_id and self.env['sale.order'].write({'shipcharge':data.shipping_cost,
                                                                 'ship_method':data.usps_service_type,
                                                                 'sale_account_id':data.logis_company and data.logis_company.ship_account_id and data.logis_company.ship_account_id.id or False,
@@ -98,19 +100,19 @@ class shipping_rate_wizard(models.TransientModel):
                                                                 'rate_selection' : data.rate_selection
                                                                 })
             self.env['sale.order'].button_dummy([sale_id])
-            return {'nodestroy':False,'type': 'ir.actions.act_window_close'}
+            return {'nodestroy':False, 'type': 'ir.actions.act_window_close'}
         return True
 
     @api.multi
     def get_rate(self):
-        ids=self._ids
-        context=self._context
+        ids = self._ids
+        context = self._context
         data = self.browse(self._ids)
-        if not ( data['rate_selection'] == 'rate_request' and data['ship_company_code']=='usps'):
+        if not (data['rate_selection'] == 'rate_request' and data['ship_company_code'] == 'usps'):
             return super(shipping_rate_wizard, self).get_rate()
 
-        if context.get('active_model',False) == 'sale.order':
-            sale_id = context.get('active_id',False)
+        if context.get('active_model', False) == 'sale.order':
+            sale_id = context.get('active_id', False)
             sale = self.env['sale.order'].browse(sale_id)
             test = data.logis_company.test_mode or False
             url = ''
@@ -124,10 +126,10 @@ class shipping_rate_wizard(models.TransientModel):
             zip_origin = ''
             if address_from:
                 zip_origin = address_from.zip or ''
-            zip_destination=sale.partner_shipping_id.zip or ''
+            zip_destination = sale.partner_shipping_id.zip or ''
             weight = math.modf(sale.total_weight_net)
             pounds = int(weight[1])
-            ounces = round(weight[0],2) * 16
+            ounces = round(weight[0], 2) * 16
             request_xml = """<RateV4Request USERID="%(user_id)s">
                                 <Revision/>
                                     <Package ID="1ST">
@@ -141,12 +143,12 @@ class shipping_rate_wizard(models.TransientModel):
                                         <Size>REGULAR</Size>
                                         <Machinable>true</Machinable>
                                     </Package>
-                            </RateV4Request>"""%{
+                            </RateV4Request>""" % {
                         'user_id' : data.logis_company and data.logis_company.usps_userid,
                         'service_type' : data.usps_service_type ,
                         'first_class_mail_type' : data.usps_first_class_mail_type,
                         'zip_origin' :  zip_origin,
-                        'zip_desitination' : zip_destination, 
+                        'zip_desitination' : zip_destination,
                         'pounds' : str(pounds),
                         'ounces' : str(ounces),
                         'container' : str(data.usps_container) ,
@@ -279,25 +281,25 @@ class shipping_rate_wizard(models.TransientModel):
          ]
         
         
-    ship_company_code =             fields.Selection('_get_company_code', string='Ship Company')
-    usps_service_type =             fields.Selection('_get_service_type_usps', string='Service Type')
-    usps_package_location =         fields.Selection([
-                                                    ('Front Door','Front Door'),
-                                                    ('Back Door','Back Door'),
-                                                    ('Side Door','Side Door'),
-                                                    ('Knock on Door/Ring Bell','Knock on Door/Ring Bell'),
-                                                    ('Mail Room','Mail Room'),
-                                                    ('Office','Office'),
-                                                    ('Reception','Reception'),
-                                                    ('In/At Mailbox','In/At Mailbox'),
-                                                    ('Other','Other'),
-                                               ],string='Package Location')
-    usps_first_class_mail_type =    fields.Selection('_get_first_class_mail_type_usps', string='First Class Mail Type')
-    usps_container =                fields.Selection('_get_container_usps', string='Container')
-    usps_size =                     fields.Selection('_get_size_usps', string='Size')
-    usps_length =                   fields.Float(string='Length')
-    usps_width =                    fields.Float(string='Width')
-    usps_height =                   fields.Float(string='Height')
-    usps_girth =                    fields.Float(string='Girth')
+    ship_company_code = fields.Selection('_get_company_code', string='Ship Company')
+    usps_service_type = fields.Selection('_get_service_type_usps', string='Service Type')
+    usps_package_location = fields.Selection([
+                                                    ('Front Door', 'Front Door'),
+                                                    ('Back Door', 'Back Door'),
+                                                    ('Side Door', 'Side Door'),
+                                                    ('Knock on Door/Ring Bell', 'Knock on Door/Ring Bell'),
+                                                    ('Mail Room', 'Mail Room'),
+                                                    ('Office', 'Office'),
+                                                    ('Reception', 'Reception'),
+                                                    ('In/At Mailbox', 'In/At Mailbox'),
+                                                    ('Other', 'Other'),
+                                               ], string='Package Location')
+    usps_first_class_mail_type = fields.Selection('_get_first_class_mail_type_usps', string='First Class Mail Type')
+    usps_container = fields.Selection('_get_container_usps', string='Container')
+    usps_size = fields.Selection('_get_size_usps', string='Size')
+    usps_length = fields.Float(string='Length')
+    usps_width = fields.Float(string='Width')
+    usps_height = fields.Float(string='Height')
+    usps_girth = fields.Float(string='Girth')
 
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
