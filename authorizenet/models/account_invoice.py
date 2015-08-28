@@ -30,8 +30,8 @@ class AccountInvoice(osv.osv):
 
         return False
 
-    #TODO: This method returns vals so there is no reason to override it
-    #Replace with simple super and update vals
+    # TODO: This method returns vals so there is no reason to override it
+    # Replace with simple super and update vals
     def invoice_pay_customer(self, cr, uid, ids, context=None):
         if not ids: return []
         dummy, view_id = self.pool.get('ir.model.data').get_object_reference(cr, uid, 'account_voucher', 'view_vendor_receipt_dialog_form')
@@ -55,8 +55,8 @@ class AccountInvoice(osv.osv):
                 'close_after_process': True,
                 'invoice_type': invoice.type,
                 'invoice_id': invoice.id,
-                'default_type': invoice.type in ('out_invoice','out_refund') and 'receipt' or 'payment',
-                'type': invoice.type in ('out_invoice','out_refund') and 'receipt' or 'payment'
+                'default_type': invoice.type in ('out_invoice', 'out_refund') and 'receipt' or 'payment',
+                'type': invoice.type in ('out_invoice', 'out_refund') and 'receipt' or 'payment'
             }
         }
 
@@ -66,8 +66,8 @@ class AccountInvoice(osv.osv):
 		'default_invoice_type': invoice.type,
 	}
 
-	if invoice.purchase_order:
-	    default_vals['default_supplier_payment'] = True
+	# if invoice.purchase_order:
+	    # default_vals['default_supplier_payment'] = True
 
 	journal = self.get_cc_payment_journal(cr, uid, invoice)
 	if journal:

@@ -191,7 +191,7 @@ class shipping_rate_wizard(models.TransientModel):
                                 if 'Postage' in item:
                                     for i in item['Postage']:
                                         if 'Rate' in i:
-                                            self.write([data.id], {'status_message': '', 'shipping_cost': i['Rate'] })
+                                            self.write({'status_message': '', 'shipping_cost': i['Rate'] })
                                             sale.write({'shipcharge': float(i['Rate']) or 0.00, 'ship_method':data.ship_company_code + ':' + data.usps_service_type, 'status_message': ''})
                                             return True
         mod, modid = self.env['ir.model.data'].get_object_reference('shipping_api_usps', 'view_for_shipping_rate_wizard_usps')
